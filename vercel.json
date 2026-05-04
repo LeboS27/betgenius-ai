@@ -2,11 +2,11 @@
   "crons": [
     {
       "path": "/api/cron/refresh-matches",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 5 * * *"
     },
     {
       "path": "/api/cron/pre-generate-analyses",
-      "schedule": "0 */4 * * *"
+      "schedule": "0 6 * * *"
     },
     {
       "path": "/api/cron/check-subscriptions",
@@ -18,11 +18,11 @@
     },
     {
       "path": "/api/cron/update-live-scores",
-      "schedule": "* * * * *"
+      "schedule": "0 12 * * *"
     },
     {
       "path": "/api/cron/invalidate-stale-caches",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 3 * * *"
     }
   ]
 }
