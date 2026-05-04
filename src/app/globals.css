@@ -1,0 +1,98 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Light mode is the only theme */
+:root,
+[data-theme="light"] {
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F4F6FA;
+  --bg-tertiary: #E8ECF5;
+  --accent-primary: #0004F7;
+  --accent-glow: rgba(0, 4, 247, 0.12);
+  --text-primary: #0A0E1A;
+  --text-secondary: #4A5568;
+  --text-muted: #A0AEC0;
+  --success: #00A651;
+  --warning: #FF8F00;
+  --danger: #D32F2F;
+  --border: rgba(0, 0, 0, 0.09);
+  --card-bg: rgba(0, 0, 0, 0.025);
+  --card-hover: rgba(0, 0, 0, 0.05);
+  --electric-blue: #0004F7;
+}
+
+/* Keep dark theme available but unused for now */
+[data-theme="dark"] {
+  --bg-primary: #0A0E1A;
+  --bg-secondary: #0F1629;
+  --bg-tertiary: #131D35;
+  --accent-primary: #0004F7;
+  --text-primary: #FFFFFF;
+  --text-secondary: #A9B5C8;
+  --text-muted: #4A5568;
+  --success: #00FF86;
+  --warning: #FFB300;
+  --danger: #FF4444;
+  --border: rgba(255, 255, 255, 0.08);
+  --card-bg: rgba(255, 255, 255, 0.04);
+  --card-hover: rgba(255, 255, 255, 0.07);
+  --electric-blue: #0004F7;
+}
+
+* { box-sizing: border-box; padding: 0; margin: 0; }
+
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@keyframes bgGlow {
+  0%, 100% { box-shadow: 0 0 8px 2px var(--electric-blue); }
+  50% { box-shadow: 0 0 20px 6px var(--electric-blue); }
+}
+
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 255, 134, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(0, 255, 134, 0); }
+}
+
+@keyframes stepFade {
+  0% { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.logo-pulse { animation: bgGlow 2s ease-in-out infinite; }
+.live-pulse { animation: pulse-green 2s ease-in-out infinite; }
+.step-animate { animation: stepFade 0.4s ease forwards; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-secondary); }
+::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 3px; }
+
+.font-display { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.05em; }
+.font-mono { font-family: 'JetBrains Mono', monospace; }
+
+.blurred-content { filter: blur(5px); user-select: none; pointer-events: none; position: relative; }
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.card:hover { background: var(--card-hover); }
+
+.form-W { background: rgba(0, 255, 134, 0.15); color: var(--success); }
+.form-D { background: rgba(169, 181, 200, 0.15); color: var(--text-secondary); }
+.form-L { background: rgba(255, 68, 68, 0.15); color: var(--danger); }
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+}
