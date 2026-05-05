@@ -71,7 +71,6 @@ export function AccountClient({ profile, subscription, referralCount, convertedC
   const sendOtp = async () => {
     setOtpSending(true)
     setOtpError('')
-    setSandboxOtp('')
     const res = await fetch('/api/auth/verify-phone', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
