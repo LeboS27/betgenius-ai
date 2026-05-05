@@ -99,6 +99,7 @@ JSON SCHEMA:
   "newsImpact": "string or null",
   "dataQualityNote": "string or null"
 }`
+}
 
 function buildPrompt(ctx: MatchAnalysisContext, type: AnalysisType): string {
   const base = `
