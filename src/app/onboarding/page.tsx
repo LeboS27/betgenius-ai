@@ -2,7 +2,6 @@
 export const dynamic = 'force-dynamic'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 
 const CONTINENTS: Record<string, { id: number; name: string }[]> = {
@@ -34,7 +33,6 @@ const MARKETS = [
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const supabase = createClient()
   const [step, setStep] = useState(1)
   const [selectedLeagues, setSelectedLeagues] = useState<number[]>([])
   const [selectedMarkets, setSelectedMarkets] = useState<string[]>([])
@@ -60,15 +58,24 @@ export default function OnboardingPage() {
   const handleComplete = async () => {
     if (selectedLeagues.length === 0) return
     setSaving(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
 
-    await supabase.from('profiles').update({
-      favourite_leagues: selectedLeagues,
-      preferred_markets: selectedMarkets,
-      notification_preferences: notifications,
-      onboarding_complete: true,
-    }).eq('id', user.id)
+    // Use server-side API route (service client) so RLS never blocks this write
+    const res = await fetch('/api/onboarding/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        favourite_leagues: selectedLeagues,
+        preferred_markets: selectedMarkets,
+        notification_preferences: notifications,
+      }),
+    })
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      console.error('Onboarding save failed:', data.error)
+      setSaving(false)
+      return
+    }
 
     router.push('/dashboard')
     router.refresh()
