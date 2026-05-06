@@ -3,6 +3,8 @@ import { MatchCard } from '@/components/match/MatchCard'
 import { TopPickHero } from '@/components/match/TopPickHero'
 import { ContinentTabs } from '@/components/match/ContinentTabs'
 import { BetSlipButton } from '@/components/dashboard/BetSlipButton'
+import { getMatchesByDateRange, mapMatchToRow } from '@/lib/football-api'
+import { format, addDays } from 'date-fns'
 
 const CONTINENTS = ['All', 'Europe', 'Americas', 'Africa', 'Asia']
 
@@ -105,26 +107,27 @@ export default async function DashboardPage({
   // Top pick — highest-confidence match from today's scheduled matches
   const topPickMatch = matches.find(m => (confidenceMap[m.id] ?? 0) >= 75)
 
-  // Fallback: look 30 days ahead (still date-filtered — never show past games)
-  const in30Days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-  const fallbackMatches = !matches.length ? await service
-    .from('matches')
-    .select('*')
-    .in('status', ['scheduled', 'live'])
-    .gte('kickoff_utc', now)
-    .lte('kickoff_utc', in30Days)
-    .order('kickoff_utc', { ascending: true })
-    .limit(20) : null
-
-  // If DB is completely empty of upcoming fixtures, trigger a background refresh
-  if (!matches.length && !fallbackMatches?.data?.length) {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://betgeniusai.vercel.app'
-    const cronSecret = process.env.CRON_SECRET || ''
-    fetch(`${appUrl}/api/cron/refresh-matches?secret=${cronSecret}`, { cache: 'no-store' })
-      .catch(() => {}) // fire-and-forget, don't block render
+  // If DB has no upcoming matches, fetch live from football-data.org, seed DB, use those results
+  let liveSeeded: any[] = []
+  if (!matches.length) {
+    try {
+      const dateFrom = format(new Date(), 'yyyy-MM-dd')
+      const dateTo   = format(addDays(new Date(), 14), 'yyyy-MM-dd')
+      const apiMatches = await getMatchesByDateRange(dateFrom, dateTo)
+      for (const m of apiMatches) {
+        const row = mapMatchToRow(m)
+        await service.from('matches').upsert(row, { onConflict: 'id' })
+        if (['scheduled', 'live'].includes(row.status) && row.kickoff_utc >= now) {
+          liveSeeded.push(row)
+        }
+      }
+      liveSeeded = sortMatchesByPriority(liveSeeded)
+    } catch (e) {
+      console.error('Dashboard live seed error:', e)
+    }
   }
 
-  const displayMatches = matches.length ? matches : (fallbackMatches?.data ? sortMatchesByPriority(fallbackMatches.data) : [])
+  const displayMatches = matches.length ? matches : liveSeeded
 
   return (
     <div>
@@ -167,9 +170,9 @@ export default async function DashboardPage({
         </div>
       )}
 
-      {!matches.length && fallbackMatches?.data?.length && (
+      {!matches.length && liveSeeded.length > 0 && (
         <p className="text-center text-xs text-[var(--text-muted)] mt-4">
-          Showing upcoming matches — run /api/admin/refresh-matches to populate today&apos;s fixtures
+          Fixtures refreshed live — next auto-refresh at 05:00 UTC
         </p>
       )}
     </div>
