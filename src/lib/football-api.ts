@@ -33,10 +33,53 @@ async function apiFetch(path: string) {
   }
 }
 
-/** Get matches across all supported competitions for a date range */
+/** Get matches across all supported competitions for a date range.
+ *  Tries the global endpoint first (paid tiers), then falls back to
+ *  per-competition queries for the free tier.
+ */
 export async function getMatchesByDateRange(dateFrom: string, dateTo: string) {
-  const data = await apiFetch(`/matches?dateFrom=${dateFrom}&dateTo=${dateTo}&status=SCHEDULED,IN_PLAY,PAUSED,FINISHED`)
-  return data?.matches ?? []
+  // Try global endpoint first (works on paid tiers)
+  const global = await apiFetch(
+    `/matches?dateFrom=${dateFrom}&dateTo=${dateTo}&status=SCHEDULED,IN_PLAY,PAUSED,FINISHED`
+  )
+  if (global?.matches?.length) return global.matches
+
+  // Free-tier fallback: query each competition individually with rate-limit delay
+  const allMatches: any[] = []
+  for (const id of COMPETITION_IDS) {
+    try {
+      const data = await apiFetch(
+        `/competitions/${id}/matches?dateFrom=${dateFrom}&dateTo=${dateTo}&status=SCHEDULED,IN_PLAY,PAUSED,FINISHED`
+      )
+      if (data?.matches?.length) allMatches.push(...data.matches)
+      // Respect free-tier rate limit: 10 req/min
+      await new Promise(r => setTimeout(r, 700))
+    } catch {
+      // continue to next competition
+    }
+  }
+  return allMatches
+}
+
+/** Quick fetch — top 3 competitions only (UCL, PL, La Liga).
+ *  Used by the dashboard for a fast live-seed when the DB is empty.
+ *  Returns results in ~3 seconds, well within serverless timeout.
+ */
+export async function getMatchesQuick(dateFrom: string, dateTo: string) {
+  const QUICK_IDS = [2001, 2021, 2014] // UCL, Premier League, La Liga
+  const allMatches: any[] = []
+  for (const id of QUICK_IDS) {
+    try {
+      const data = await apiFetch(
+        `/competitions/${id}/matches?dateFrom=${dateFrom}&dateTo=${dateTo}&status=SCHEDULED,IN_PLAY,PAUSED,FINISHED`
+      )
+      if (data?.matches?.length) allMatches.push(...data.matches)
+      await new Promise(r => setTimeout(r, 700))
+    } catch {
+      // continue
+    }
+  }
+  return allMatches
 }
 
 /** Get matches for a specific competition by date range */

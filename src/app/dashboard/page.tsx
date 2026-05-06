@@ -3,7 +3,7 @@ import { MatchCard } from '@/components/match/MatchCard'
 import { TopPickHero } from '@/components/match/TopPickHero'
 import { ContinentTabs } from '@/components/match/ContinentTabs'
 import { BetSlipButton } from '@/components/dashboard/BetSlipButton'
-import { getMatchesByDateRange, mapMatchToRow } from '@/lib/football-api'
+import { getMatchesQuick, mapMatchToRow } from '@/lib/football-api'
 import { format, addDays } from 'date-fns'
 
 const CONTINENTS = ['All', 'Europe', 'Americas', 'Africa', 'Asia']
@@ -107,13 +107,13 @@ export default async function DashboardPage({
   // Top pick — highest-confidence match from today's scheduled matches
   const topPickMatch = matches.find(m => (confidenceMap[m.id] ?? 0) >= 75)
 
-  // If DB has no upcoming matches, fetch live from football-data.org, seed DB, use those results
+  // If DB has no upcoming matches, do a quick 3-competition live fetch (~3s) to seed the DB
   let liveSeeded: any[] = []
   if (!matches.length) {
     try {
       const dateFrom = format(new Date(), 'yyyy-MM-dd')
       const dateTo   = format(addDays(new Date(), 14), 'yyyy-MM-dd')
-      const apiMatches = await getMatchesByDateRange(dateFrom, dateTo)
+      const apiMatches = await getMatchesQuick(dateFrom, dateTo)
       for (const m of apiMatches) {
         const row = mapMatchToRow(m)
         await service.from('matches').upsert(row, { onConflict: 'id' })
