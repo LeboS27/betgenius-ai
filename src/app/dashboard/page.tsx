@@ -56,9 +56,9 @@ export default async function DashboardPage({
   const continent = searchParams.continent || 'All'
   const query = searchParams.q || ''
 
-  // Fetch matches — next 7 days
+  // Fetch matches — next 14 days
   const now = new Date().toISOString()
-  const in7Days = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+  const in7Days = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
 
   let matchQuery = service
     .from('matches')
@@ -105,13 +105,24 @@ export default async function DashboardPage({
   // Top pick — highest-confidence match from today's scheduled matches
   const topPickMatch = matches.find(m => (confidenceMap[m.id] ?? 0) >= 75)
 
-  // Fallback: show upcoming matches if no matches in window
+  // Fallback: look 30 days ahead (still date-filtered — never show past games)
+  const in30Days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
   const fallbackMatches = !matches.length ? await service
     .from('matches')
     .select('*')
     .in('status', ['scheduled', 'live'])
+    .gte('kickoff_utc', now)
+    .lte('kickoff_utc', in30Days)
     .order('kickoff_utc', { ascending: true })
     .limit(20) : null
+
+  // If DB is completely empty of upcoming fixtures, trigger a background refresh
+  if (!matches.length && !fallbackMatches?.data?.length) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://betgeniusai.vercel.app'
+    const cronSecret = process.env.CRON_SECRET || ''
+    fetch(`${appUrl}/api/cron/refresh-matches?secret=${cronSecret}`, { cache: 'no-store' })
+      .catch(() => {}) // fire-and-forget, don't block render
+  }
 
   const displayMatches = matches.length ? matches : (fallbackMatches?.data ? sortMatchesByPriority(fallbackMatches.data) : [])
 

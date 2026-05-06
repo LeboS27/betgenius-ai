@@ -14,13 +14,19 @@ export async function GET(req: NextRequest) {
 
   const service = createServiceClient()
   const today = format(new Date(), 'yyyy-MM-dd')
-  const in7Days = format(addDays(new Date(), 7), 'yyyy-MM-dd')
+  const in7Days = format(addDays(new Date(), 14), 'yyyy-MM-dd')
   const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd')
 
   // Clean up old finished matches
   await service.from('matches')
     .delete()
     .eq('status', 'finished')
+    .lt('kickoff_utc', yesterday + 'T00:00:00Z')
+
+  // Clean up stale scheduled matches that have already kicked off but were never updated
+  await service.from('matches')
+    .delete()
+    .eq('status', 'scheduled')
     .lt('kickoff_utc', yesterday + 'T00:00:00Z')
 
   let fetched = 0
